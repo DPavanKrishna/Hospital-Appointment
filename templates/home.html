@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+     <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthcare Portal - Home</title>
+    <body>
+    <div class="home-container">
+        <div class="header">
+            <h1>🏥 Healthcare Portal</h1>
+            <p class="subtitle">Your Health, Our Priority</p>
+        </div>
+
+        <div class="content">
+            <h2>Welcome to Our Healthcare System</h2>
+            <p>
+                Our Healthcare Portal connects patients with qualified doctors through a secure and easy-to-use platform. Patients can book appointments, manage their schedules, and receive real-time updates, while doctors can efficiently approve and manage patient consultations. Experience hassle-free healthcare with our multi-factor authenticated system designed for your safety and convenience.
+            </p>
+        </div>
+
+        <div class="buttons">
+           <a href="{{ url_for('register') }}" class="btn btn-primary">Register Now</a>
+           <a href="{{ url_for('login') }}" class="btn btn-secondary">Login</a>
+        </div>
+
+        <div class="footer">
+            <p>&copy; 2026 Healthcare Portal. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</head>
+</html>

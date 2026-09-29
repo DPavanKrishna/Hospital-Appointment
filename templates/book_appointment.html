@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book Appointment</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='book_appointment.css') }}">
+</head>
+<body>
+<nav class="navbar">
+    <h1>Book Appointment</h1>
+    <a href="{{ url_for('patient_dashboard') }}" class="back-btn">← Back to Dashboard</a>
+</nav>
+
+<div class="container">
+    <div class="booking-card">
+        <div class="card-header">
+            <h2>Schedule Your Appointment</h2>
+            <p>Patient ID: <strong>{{ session.patient_id }}</strong></p>
+            <p>Fill in the details below to book your appointment</p>
+        </div>
+
+        <form id="bookingForm">
+            <!-- Select Doctor -->
+            <div class="form-group">
+                <label for="doctor">Select Doctor <span class="required">*</span></label>
+                <select id="doctor" name="doctor" required>
+                    <option value="">Choose a doctor</option>
+                    <option value="1VRsYpvtBubtEya0DtVQYtDUSuk2">Dr. Alice - Cardiology</option>
+                    <option value="V7LAsBamGXaDw64clWQDBEbH9P33">Dr. John - General Medicine</option>
+                    <option value="eAYxPia71odwlPKQhOYIHTrClan1">Dr. Sam - Dermatology</option>
+                    <option value="2AJyVeWubgZsLeIebdecZNXtJhg1">Dr. Ben - Orthopedics</option>
+                </select>
+            </div>
+
+            <!-- Appointment Date -->
+            <div class="form-group">
+                <label for="date">Appointment Date <span class="required">*</span></label>
+                <input type="date" id="date" name="date" required>
+            </div>
+
+            <!-- Time Slots -->
+            <div class="form-group">
+                <label>Select Time Slot <span class="required">*</span></label>
+                <div class="time-slots" id="timeSlots">
+                    <div class="time-slot" data-time="09:00">09:00 AM</div>
+                    <div class="time-slot" data-time="10:00">10:00 AM</div>
+                    <div class="time-slot" data-time="11:00">11:00 AM</div>
+                    <div class="time-slot" data-time="12:00">12:00 PM</div>
+                    <div class="time-slot" data-time="14:00">02:00 PM</div>
+                    <div class="time-slot" data-time="15:00">03:00 PM</div>
+                    <div class="time-slot" data-time="16:00">04:00 PM</div>
+                    <div class="time-slot" data-time="17:00">05:00 PM</div>
+                </div>
+                <input type="hidden" id="time" name="time" required>
+            </div>
+
+            <!-- Reason -->
+            <div class="form-group">
+                <label for="reason">Reason for Visit <span class="required">*</span></label>
+                <textarea id="reason" name="reason" placeholder="Describe your symptoms or reason" required></textarea>
+            </div>
+
+            <!-- Additional Notes -->
+            <div class="form-group">
+                <label for="notes">Additional Notes (Optional)</label>
+                <textarea id="notes" name="notes" placeholder="Any additional info"></textarea>
+            </div>
+
+            <div class="btn-group">
+                <a href="{{ url_for('patient_dashboard') }}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">Book Appointment</button>
+            </div>
+        </form>
+
+        <!-- Success message with Base64 link -->
+        <div id="successMessage" style="display:none; margin-top:20px;">
+            <h3>Appointment Booked Successfully!</h3>
+            <p>Copy your appointment link below:</p>
+            <input type="text" id="apptLink" readonly style="width:80%;">
+            <button onclick="copyLink()">Copy Link</button>
+            <br><br>
+            <a id="openLink" href="#" target="_blank">Open Appointment</a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("bookingForm");
+    const timeSlots = document.querySelectorAll(".time-slot");
+    const timeInput = document.getElementById("time");
+
+    // Select time slot
+    timeSlots.forEach(slot => {
+        slot.addEventListener("click", () => {
+            timeInput.value = slot.dataset.time;
+            timeSlots.forEach(s => s.classList.remove("selected"));
+            slot.classList.add("selected");
+        });
+    });
+
+    // Handle form submission
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const submitBtn = form.querySelector("button[type='submit']");
+        submitBtn.disabled = true;
+        submitBtn.innerText = "Booking...";
+
+        const data = {
+            doctor: form.doctor.value,
+            date: form.date.value,
+            time: form.time.value,
+            reason: form.reason.value,
+            notes: form.notes.value
+        };
+
+        try {
+            const res = await fetch("/book-appointment", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+
+            const result = await res.json();
+
+            if (result.success) {
+                // Show Base64 token link
+                const token = result.appt_token;
+                const link = `${window.location.origin}/appointment/${token}`;
+
+                document.getElementById("apptLink").value = link;
+                document.getElementById("openLink").href = link;
+                document.getElementById("successMessage").style.display = "block";
+
+                // Reset form
+                form.reset();
+                timeSlots.forEach(s => s.classList.remove("selected"));
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Book Appointment";
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Book Appointment";
+                alert("Booking failed: " + (result.error || "Unknown error"));
+            }
+        } catch (err) {
+            console.error(err);
+            submitBtn.disabled = false;
+            submitBtn.innerText = "Book Appointment";
+            alert("Error booking appointment");
+        }
+    });
+});
+
+// Copy link to clipboard
+function copyLink() {
+    const linkInput = document.getElementById("apptLink");
+    linkInput.select();
+    linkInput.setSelectionRange(0, 99999); // For mobile
+    navigator.clipboard.writeText(linkInput.value)
+        .then(() => alert("Link copied to clipboard!"))
+        .catch(() => alert("Failed to copy link"));
+}
+
+function updateAppointmentStatus(appointmentId, newStatus) {
+    if (!confirm(`Are you sure you want to ${newStatus} this appointment?`)) {
+        return;
+    }
+    
+    fetch(`/update_appointment_status/${appointmentId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Appointment ${newStatus} successfully!`);
+            location.reload(); // Refresh the page to show updated status
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to update appointment status');
+    });
+}
+</script>
+</body>
+</html>

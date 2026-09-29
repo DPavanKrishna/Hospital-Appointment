@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointment Details - Healthcare Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='patient.css') }}">
+    <style>
+        .detail-container { max-width: 700px; margin: 2rem auto; padding: 1.5rem; border: 1px solid #ddd; border-radius: 10px; background: #f9f9f9; }
+        h2 { text-align: center; margin-bottom: 1rem; }
+        .detail-row { margin: 0.5rem 0; display: flex; justify-content: space-between; }
+        .detail-label { font-weight: bold; }
+        .back-btn { display: block; margin: 2rem auto; padding: 0.5rem 1.5rem; background: #4caf50; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .back-btn:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <div class="detail-container">
+        <h2>Appointment Details</h2>
+
+        <div class="detail-row">
+            <span class="detail-label">Date:</span>
+            <span>{{ appointment.date }}</span>
+        </div>
+
+        <div class="detail-row">
+            <span class="detail-label">Time:</span>
+            <span>{{ appointment.time }}</span>
+        </div>
+
+        <div class="detail-row">
+            <span class="detail-label">Doctor:</span>
+            <span>{{ appointment.doctor_name or appointment.doctor_id }}</span>
+        </div>
+
+        <div class="detail-row">
+            <span class="detail-label">Department:</span>
+            <span>{{ appointment.department or "General" }}</span>
+        </div>
+
+        <div class="detail-row">
+            <span class="detail-label">Reason:</span>
+            <span>{{ appointment.reason or "-" }}</span>
+        </div>
+
+        <div class="detail-row">
+            <span class="detail-label">Status:</span>
+            <span>{{ appointment.status|capitalize }}</span>
+        </div>
+
+        <button class="back-btn" onclick="window.history.back()">⬅ Back</button>
+    </div>
+</body>
+</html>

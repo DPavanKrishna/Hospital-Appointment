@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="../static/admin.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Hospital Management</title>
+    <body>
+    <div class="container">
+        <header>
+            <h1>Admin Dashboard</h1>
+            <p class="subtitle">Hospital Management System</p>
+        </header>
+
+        <div class="dashboard-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Appointments</div>
+                <div class="stat-number" id="totalAppointments">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Active Doctors</div>
+                <div class="stat-number" id="totalDoctors">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Pending Appointments</div>
+                <div class="stat-number" id="pendingAppointments">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Today's Appointments</div>
+                <div class="stat-number" id="todayAppointments">0</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('appointments')">Appointments</button>
+                <button class="tab" onclick="switchTab('doctors')">Doctors</button>
+            </div>
+
+            <div id="appointments-tab" class="tab-content active">
+                <h2>All Appointments</h2>
+                
+                <div class="search-filter">
+                    <input type="text" id="searchAppointments" placeholder="Search by patient name...">
+                    <select id="filterStatus">
+                        <option value="">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                    <select id="filterDoctor">
+                        <option value="">All Doctors</option>
+                    </select>
+                </div>
+
+                <table id="appointmentsTable">
+                    <thead>
+                        <tr>
+                            <th>Patient</th>
+                            <th>Doctor</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="appointmentsBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="doctors-tab" class="tab-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">Manage Doctors</h2>
+                    <button class="btn btn-primary" onclick="openAddDoctorModal()">+ Add Doctor</button>
+                </div>
+
+                <div id="doctorsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Doctor Modal -->
+    <div id="addDoctorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Doctor</h2>
+                <span class="close" onclick="closeAddDoctorModal()">&times;</span>
+            </div>
+            <form id="addDoctorForm">
+                <div class="form-group">
+                    <label>Doctor Name *</label>
+                    <input type="text" id="doctorName" required>
+                </div>
+                <div class="form-group">
+                    <label>Specialization *</label>
+                    <input type="text" id="doctorSpecialization" required>
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="doctorEmail" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone *</label>
+                    <input type="tel" id="doctorPhone" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Doctor</button>
+            </form>
+        </div>
+    </div>
+    <script>
+// Global variables
+let allAppointments = [];
+let allDoctors = [];
+
+// Load data when page loads
+window.addEventListener('DOMContentLoaded', function() {
+    loadStats();
+    loadAppointments();
+    loadDoctors();
+});
+
+// Load dashboard statistics
+async function loadStats() {
+    try {
+        const response = await fetch('/api/admin/stats');
+        const data = await response.json();
+        
+        document.getElementById('totalAppointments').textContent = data.total_appointments || 0;
+        document.getElementById('totalDoctors').textContent = data.total_doctors || 0;
+        document.getElementById('pendingAppointments').textContent = data.pending_appointments || 0;
+        document.getElementById('todayAppointments').textContent = data.today_appointments || 0;
+    } catch (error) {
+        console.error('Error loading stats:', error);
+    }
+}
+
+// Load all appointments
+async function loadAppointments() {
+    try {
+        const response = await fetch('/api/admin/appointments');
+        const data = await response.json();
+        allAppointments = data.appointments || [];
+        
+        displayAppointments(allAppointments);
+        populateDoctorFilter(allAppointments);
+    } catch (error) {
+        console.error('Error loading appointments:', error);
+    }
+}
+
+// Display appointments in table
+function displayAppointments(appointments) {
+    const tbody = document.getElementById('appointmentsBody');
+    tbody.innerHTML = '';
+    
+    if (appointments.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No appointments found</td></tr>';
+        return;
+    }
+    
+    appointments.forEach(appt => {
+        const row = document.createElement('tr');
+        
+        const statusClass = {
+            'pending': 'status-pending',
+            'confirmed': 'status-confirmed',
+            'completed': 'status-completed',
+            'cancelled': 'status-cancelled'
+        }[appt.status] || '';
+        
+        row.innerHTML = `
+            <td>${appt.patient_name || 'Unknown'}</td>
+            <td>${appt.doctor_name || 'Unknown'}</td>
+            <td>${appt.date || 'N/A'}</td>
+            <td>${appt.time || 'N/A'}</td>
+            <td><span class="status ${statusClass}">${appt.status || 'pending'}</span></td>
+            <td>
+                <button class="btn btn-sm" onclick="viewAppointmentDetails('${appt.id}')">View</button>
+                ${appt.status === 'pending' ? 
+                    `<button class="btn btn-sm btn-primary" onclick="updateStatus('${appt.id}', 'confirmed')">Confirm</button>` : ''}
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
+
+// Populate doctor filter dropdown
+function populateDoctorFilter(appointments) {
+    const filterSelect = document.getElementById('filterDoctor');
+    const doctors = new Set();
+    
+    appointments.forEach(appt => {
+        if (appt.doctor_name) {
+            doctors.add(JSON.stringify({id: appt.doctor_id, name: appt.doctor_name}));
+        }
+    });
+    
+    doctors.forEach(doctorStr => {
+        const doctor = JSON.parse(doctorStr);
+        const option = document.createElement('option');
+        option.value = doctor.id;
+        option.textContent = doctor.name;
+        filterSelect.appendChild(option);
+    });
+}
+
+// Filter appointments
+document.getElementById('searchAppointments')?.addEventListener('input', filterAppointments);
+document.getElementById('filterStatus')?.addEventListener('change', filterAppointments);
+document.getElementById('filterDoctor')?.addEventListener('change', filterAppointments);
+
+function filterAppointments() {
+    const searchTerm = document.getElementById('searchAppointments').value.toLowerCase();
+    const statusFilter = document.getElementById('filterStatus').value;
+    const doctorFilter = document.getElementById('filterDoctor').value;
+    
+    let filtered = allAppointments.filter(appt => {
+        const matchesSearch = !searchTerm || 
+            (appt.patient_name && appt.patient_name.toLowerCase().includes(searchTerm));
+        const matchesStatus = !statusFilter || appt.status === statusFilter;
+        const matchesDoctor = !doctorFilter || appt.doctor_id === doctorFilter;
+        
+        return matchesSearch && matchesStatus && matchesDoctor;
+    });
+    
+    displayAppointments(filtered);
+}
+
+// Update appointment status
+async function updateStatus(appointmentId, newStatus) {
+    try {
+        const response = await fetch(`/update_appointment_status/${appointmentId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Appointment status updated successfully!');
+            loadStats();
+            loadAppointments();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error updating status:', error);
+        alert('Failed to update appointment status');
+    }
+}
+
+// View appointment details
+function viewAppointmentDetails(appointmentId) {
+    const appt = allAppointments.find(a => a.id === appointmentId);
+    if (appt) {
+        alert(`Appointment Details:\n\nPatient: ${appt.patient_name}\nDoctor: ${appt.doctor_name}\nDate: ${appt.date}\nTime: ${appt.time}\nReason: ${appt.reason || 'N/A'}\nStatus: ${appt.status}`);
+    }
+}
+
+// Tab switching
+function switchTab(tabName) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Remove active class from all tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById(tabName + '-tab').classList.add('active');
+    event.target.classList.add('active');
+}
+
+// Load doctors list
+async function loadDoctors() {
+    try {
+        const response = await fetch('/api/admin/doctors');
+        const data = await response.json();
+        allDoctors = data.doctors || [];
+        
+        displayDoctors(allDoctors);
+    } catch (error) {
+        console.error('Error loading doctors:', error);
+    }
+}
+
+// Display doctors
+function displayDoctors(doctors) {
+    const doctorsList = document.getElementById('doctorsList');
+    doctorsList.innerHTML = '';
+    
+    if (doctors.length === 0) {
+        doctorsList.innerHTML = '<p>No doctors found</p>';
+        return;
+    }
+    
+    doctors.forEach(doctor => {
+        const card = document.createElement('div');
+        card.className = 'stat-card';
+        card.innerHTML = `
+            <h3>${doctor.name}</h3>
+            <p><strong>Specialization:</strong> ${doctor.specialization}</p>
+            <p><strong>Email:</strong> ${doctor.email}</p>
+        `;
+        doctorsList.appendChild(card);
+    });
+}
+
+// Add doctor modal functions
+function openAddDoctorModal() {
+    document.getElementById('addDoctorModal').style.display = 'block';
+}
+
+function closeAddDoctorModal() {
+    document.getElementById('addDoctorModal').style.display = 'none';
+    document.getElementById('addDoctorForm').reset();
+}
+
+// Handle add doctor form submission
+document.getElementById('addDoctorForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const doctorData = {
+        name: document.getElementById('doctorName').value,
+        specialization: document.getElementById('doctorSpecialization').value,
+        email: document.getElementById('doctorEmail').value,
+        phone: document.getElementById('doctorPhone').value,
+        role: 'doctor'
+    };
+    
+    // You'll need to create an endpoint for adding doctors
+    alert('Add doctor functionality needs to be implemented in backend');
+    closeAddDoctorModal();
+});
+</script>
+
+    </body>
+</head>
+</html>

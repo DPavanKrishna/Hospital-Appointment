@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Healthcare Portal</title>
+
+       <link rel="stylesheet" href="../static/register.css">
+</head>
+
+<body>
+    <div class="register-container">
+        <div class="register-header">
+            <h1>Create Account</h1>
+            <p>Join our healthcare portal today</p>
+        <form method="POST" action="/register">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" name="name" placeholder="Enter your full name" required>
+            </div>
+
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" name="email" placeholder="Enter your email" required>
+            </div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="Create a strong password" required>
+            </div>
+
+            <div class="form-group">
+                <label>Register As</label>
+                <select name="role" required>
+                    <option value="">Select your role</option>
+                    <option value="patient">Patient</option>
+                    <option value="doctor">Doctor</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Register</button>
+
+            <div class="divider">Already have an account?</div>
+
+            <div class="register-link">
+                 <a href="{{ url_for('login') }}" class="btn btn-secondary">Login</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

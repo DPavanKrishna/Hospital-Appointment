@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="../static/otp.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTP Verification - Healthcare Portal</title>
+</head>
+<body>
+    <div class="otp-container">
+        <div class="otp-header">
+            <h1>Enter Verification Code</h1>
+            <p>We've sent a 6-digit code to your email</p>
+        </div>
+
+        <form id="otpForm" method="POST" action="{{ url_for('otp') }}">
+            <div class="otp-input-container">
+                <input type="text" maxlength="1" class="otp-input" id="otp1" pattern="[0-9]" required>
+                <input type="text" maxlength="1" class="otp-input" id="otp2" pattern="[0-9]" required>
+                <input type="text" maxlength="1" class="otp-input" id="otp3" pattern="[0-9]" required>
+                <input type="text" maxlength="1" class="otp-input" id="otp4" pattern="[0-9]" required>
+                <input type="text" maxlength="1" class="otp-input" id="otp5" pattern="[0-9]" required>
+                <input type="text" maxlength="1" class="otp-input" id="otp6" pattern="[0-9]" required>
+            </div>
+
+            <input type="hidden" name="otp" id="combinedOtp">
+
+            <button type="submit" class="btn btn-primary" id="verifyBtn">
+                Verify OTP
+            </button>
+
+            <button type="button" class="btn btn-secondary" id="resendBtn">
+                Resend Code
+            </button>
+        </form>
+
+        <div class="back-link">
+            <a href="{{ url_for('login') }}">← Back to Login</a>
+        </div>
+
+        <div id="alertBox" style="color: red; margin-top: 10px;"></div>
+    </div>
+
+    <script>
+    const inputs = document.querySelectorAll('.otp-input');
+    inputs.forEach((input, i) => {
+        input.addEventListener('input', () => {
+            if(input.value.length === 1 && i < inputs.length - 1) {
+                inputs[i + 1].focus();
+            }
+        });
+    });
+
+    const otpForm = document.getElementById('otpForm');
+    otpForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        let otpValue = '';
+        inputs.forEach(input => otpValue += input.value);
+        document.getElementById('combinedOtp').value = otpValue;
+        otpForm.submit();
+    });
+
+    // ---------------- Resend OTP ----------------
+    const resendBtn = document.getElementById('resendBtn');
+    resendBtn.addEventListener('click', () => {
+        fetch("{{ url_for('generate_otp') }}")
+            .then(response => {
+                // Reset OTP inputs
+                inputs.forEach(input => input.value = '');
+                inputs[0].focus();
+                document.getElementById('alertBox').textContent = "OTP resent successfully!";
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('alertBox').textContent = "Failed to resend OTP.";
+            });
+    });
+    </script>
+
+</body>
+</html>

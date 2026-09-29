@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Dashboard - Healthcare Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='patient.css') }}">
+    <!-- <style>
+        .loading { text-align: center; padding: 2rem; color: #666; }
+        .error   { color: #d32f2f; text-align: center; padding: 1rem; }
+        .no-data { text-align: center; color: #757575; padding: 2rem; }
+    </style> -->
+</head>
+<body>
+    <nav class="navbar">
+        <h1>Healthcare Portal</h1>
+        <div class="navbar-right">
+            <span class="user-info">Welcome, {{ session.user_name or 'Patient' }}</span>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="welcome-section">
+            <h2>Welcome back, {{ session.user_name or 'Patient' }}!</h2>
+            <p>Patient ID: <strong>{{ session.patient_id }}</strong></p>
+            <p>Manage your appointments and view your health records</p>
+        </div>
+
+        <div class="actions-section">
+            <button class="book-appointment-btn" onclick="bookAppointment()">
+                📅 Book New Appointment
+            </button>
+        </div>
+
+        <div class="appointments-section">
+            <div class="section-header">
+                <h3>My Appointments</h3>
+                <button class="refresh-btn" onclick="loadAppointments()">🔄 Refresh</button>
+            </div>
+
+            <div id="appointmentsLoading" class="loading" style="display: none;">
+                Loading appointments...
+            </div>
+
+            <table id="appointmentsTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Doctor</th>
+                        <th>Department</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="appointmentsBody">
+                    <!-- Filled by JavaScript -->
+                </tbody>
+            </table>
+
+            <div id="noAppointments" class="no-data" style="display: none;">
+                No appointments scheduled yet.
+            </div>
+
+            <div id="appointmentsError" class="error" style="display: none;">
+                Failed to load appointments. Please try again.
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Redirect to the booking page
+    function bookAppointment() {
+        window.location.href = "{{ url_for('book_appointment') }}";
+    }
+
+    async function loadAppointments() {
+        const loadingEl = document.getElementById("appointmentsLoading");
+        const tableEl = document.getElementById("appointmentsTable");
+        const noDataEl = document.getElementById("noAppointments");
+        const errorEl = document.getElementById("appointmentsError");
+        const tbody = document.getElementById("appointmentsBody");
+
+        // Reset UI
+        loadingEl.style.display = "block";
+        tableEl.style.display = "none";
+        noDataEl.style.display = "none";
+        errorEl.style.display = "none";
+        tbody.innerHTML = "";
+
+        try {
+            const response = await fetch("/my-appointments");
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            loadingEl.style.display = "none";
+
+            if (!data.success) {
+                errorEl.textContent = data.error || "Failed to load appointments";
+                errorEl.style.display = "block";
+                return;
+            }
+
+            if (!data.appointments || data.appointments.length === 0) {
+                noDataEl.style.display = "block";
+                return;
+            }
+
+            tableEl.style.display = "table";
+
+            data.appointments.forEach(appt => {
+                // Use doctor_name from API response
+                let docName = appt.doctor_name || "Unknown Doctor";
+                let docId = appt.doctor_id || "N/A";
+                
+                // Extract department from doctor name or use default
+                let dept = "General Medicine";
+
+                // Truncate reason if too long
+                const reasonText = appt.reason
+                    ? appt.reason.length > 40
+                        ? appt.reason.substring(0, 40) + "..."
+                        : appt.reason
+                    : "-";
+
+                // Build row
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${appt.date || "-"}</td>
+                    <td>${appt.time || "-"}</td>
+                    <td>${docName} <small style="color: #666;">(${docId})</small></td>
+                    <td>${dept}</td>
+                    <td>${reasonText}</td>
+                    <td class="status-${appt.status || "pending"}">
+                        ${(appt.status || "pending").charAt(0).toUpperCase() + (appt.status || "pending").slice(1)}
+                    </td>
+                    <td>
+                        <button class="action-btn small" onclick="viewAppointment('${appt.encoded_token || appt.confirmation_token}')">View</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+        } catch (err) {
+            console.error("Error loading appointments:", err);
+            loadingEl.style.display = "none";
+            errorEl.style.display = "block";
+        }
+    }
+
+    function viewAppointment(token) {
+        if (!token) {
+            alert("Appointment token not found");
+            return;
+        }
+        // Redirect to appointment detail page using the encoded token
+        window.location.href = `/appointment/${token}`;
+    }
+
+    function logout() {
+        // Redirect to Flask logout route
+        window.location.href = "{{ url_for('logout') }}";
+    }
+
+    window.onload = loadAppointments;
+</script>
+
+</body>
+</html>

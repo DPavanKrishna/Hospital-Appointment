@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard - Healthcare Portal</title> 
+    <link rel="stylesheet" href="../static/doctor.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <h1>Healthcare Portal - Doctor</h1>
+        <div class="navbar-right">
+            <span class="user-info" id="userInfo">Doctor Dashboard</span>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="welcome-section">
+            <h2>Welcome, {{ doctor_name }}!</h2>
+            <p>Manage your appointments and patient consultations</p>
+        </div>
+
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3 id="totalAppointments">0</h3>
+                <p>Total Appointments</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="pendingAppointments">0</h3>
+                <p>Pending Approvals</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="confirmedAppointments">0</h3>
+                <p>Confirmed Today</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="completedAppointments">0</h3>
+                <p>Completed</p>
+            </div>
+        </div>
+
+        <div class="appointments-section">
+            <div class="section-header">
+                <h3>Patient Appointments</h3>
+                <div class="filter-group">
+                    <button class="filter-btn active" data-filter="all" onclick="filterAppointments('all')">All</button>
+                    <button class="filter-btn" data-filter="pending" onclick="filterAppointments('pending')">Pending</button>
+                    <button class="filter-btn" data-filter="confirmed" onclick="filterAppointments('confirmed')">Confirmed</button>
+                    <button class="filter-btn" data-filter="completed" onclick="filterAppointments('completed')">Completed</button>
+                    <button class="refresh-btn" onclick="loadAppointments()">🔄 Refresh</button>
+                </div>
+            </div>
+
+            <div class="table-container" id="tableContainer">
+                <table id="appointmentsTable">
+                    <thead>
+                        <tr>
+                            <th>Patient</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="appointmentsBody">
+                        {% for appt in appointments %}
+                        <tr data-status="{{ appt.status }}">
+                            <td>{{ appt.patient_name }}</td>
+                            <td>{{ appt.date }}</td>
+                            <td>{{ appt.time }}</td>
+                            <td>{{ appt.reason }}</td>
+                            <td class="status">{{ appt.status | capitalize }}</td>
+                    <td class="actions">
+                        {% if appt.status == 'pending' %}
+                        <button onclick="updateStatus('{{ appt.id }}', 'confirmed')">Approve ✅</button>
+                        {% elif appt.status == 'confirmed' %}
+                        <button onclick="updateStatus('{{ appt.id }}', 'completed')">Mark Completed ✔️</button>
+                        {% else %}
+                        <span>—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+            <td colspan="6">No Appointments</td>
+    </tr>
+    {% endfor %}
+</tbody>
+
+                </table>
+            </div>
+        </div>
+    </div>
+    <script>
+    function updateStatus(appointmentId, newStatus) {
+        fetch(`/update_appointment_status/${appointmentId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: newStatus })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            // Find the row by appointmentId
+            const row = Array.from(document.querySelectorAll('#appointmentsBody tr')).find(r => 
+                r.querySelector('td.actions button')?.getAttribute('onclick')?.includes(appointmentId)
+            );
+            if (!row) return;
+
+            // Update status text
+            row.querySelector('.status').textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+
+            // Update data-status attribute
+            row.setAttribute('data-status', newStatus);
+
+            // Update action buttons
+            const actionsCell = row.querySelector('.actions');
+            if (newStatus === 'pending') {
+                actionsCell.innerHTML = `<button onclick="updateStatus('${appointmentId}', 'confirmed')">Approve ✅</button>`;
+            } else if (newStatus === 'confirmed') {
+                actionsCell.innerHTML = `<button onclick="updateStatus('${appointmentId}', 'completed')">Mark Completed ✔️</button>`;
+            } else {
+                actionsCell.innerHTML = `<span>—</span>`;
+            }
+
+            // Update stats
+            updateStats();
+        } else {
+            alert('Failed to update status.');
+        }
+    })
+    .catch(err => console.error(err));
+}
+function updateStats() {
+    let total = 0, pending = 0, confirmed = 0, completed = 0;
+    document.querySelectorAll('#appointmentsBody tr[data-status]').forEach(row => {
+        total++;
+        const status = row.getAttribute('data-status');
+        if (status === 'pending') pending++;
+        else if (status === 'confirmed') confirmed++;
+        else if (status === 'completed') completed++;
+    });
+
+    document.getElementById('totalAppointments').textContent = total;
+    document.getElementById('pendingAppointments').textContent = pending;
+    document.getElementById('confirmedAppointments').textContent = confirmed;
+    document.getElementById('completedAppointments').textContent = completed;
+}
+
+// Initialize stats on page load
+updateStats();
+</script>
+
+</body>
+</html>

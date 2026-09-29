@@ -1,0 +1,34 @@
+# === SENSITIVE / SECRET FILES ===
+serviceAccountKey.json
+private_key.pem
+.env
+
+# === PYTHON ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+env/
+.venv/
+
+# === LOGS ===
+*.log
+server_run.log
+firebase-debug.log
+
+# === OS FILES ===
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === IDE ===
+.vscode/
+.idea/
+*.suo
+*.user
